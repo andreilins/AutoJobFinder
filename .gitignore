@@ -1,2 +1,2 @@
 # Ignore environment variables
-JobScraper/credentials.env
+**/*.env
