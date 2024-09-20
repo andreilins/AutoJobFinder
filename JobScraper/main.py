@@ -29,7 +29,6 @@ def authenticate(driver):
 
     COOKIE_FILE = "cookies.pkl"
 
-
     # Load environment variables
     load_dotenv("credentials.env")
 
@@ -55,7 +54,7 @@ def authenticate(driver):
             WebDriverWait(driver, 10).until(
                 EC.url_contains("feed")
             )
-            print("Successfully loaded session from cookies!")
+            print("Successfully loaded session from cookies")
             return
         except:
             print("Session cookies are expired or invalid. Logging in again.")
