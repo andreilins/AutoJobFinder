@@ -1,6 +1,7 @@
 import os
 import argparse
 import pickle
+import time
 from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -94,19 +95,21 @@ def search_jobs(driver, job_title, location):
         # No need to navigate to the jobs page, we are already there after authentication
         print("Starting job search...")
 
-        # Find and fill the job title input
-        job_input = driver.find_element(By.CSS_SELECTOR, "input[aria-label='Search by title, skill, or company']")
-        job_input.clear()
-        job_input.send_keys(job_title)
-
         # Find and fill the location input
         location_input = driver.find_element(By.CSS_SELECTOR, "input[aria-label='City, state, or zip code']")
         location_input.send_keys(Keys.CONTROL + "a")
         location_input.send_keys(Keys.BACKSPACE)
         location_input.send_keys(location)
-
-        # Submit the search form by simulating Enter key press
         location_input.send_keys(Keys.RETURN)
+
+        time.sleep(3)
+
+        # Find and fill the job title input
+        job_input = driver.find_element(By.CSS_SELECTOR, "input[aria-label='Search by title, skill, or company']")
+        job_input.send_keys(Keys.CONTROL + "a")
+        job_input.send_keys(Keys.BACKSPACE)
+        job_input.send_keys(job_title)
+        job_input.send_keys(Keys.RETURN)
 
         print(f"Search results loaded for {job_title} in {location}.")
 
@@ -118,8 +121,14 @@ def main():
     driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
 
     try:
-        # Authenticate using LinkedIn credentials
         authenticate(driver)
+        driver.get("https://www.linkedin.com/jobs/search/")
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "input[aria-label='Search by title, skill, or company']"))
+        )
+        job_title = "Developer"
+        location = "France"
+        search_jobs(driver, job_title, location) 
 
     finally:
         print("scoobydoo")
