@@ -27,7 +27,6 @@ def cookies_exist(path):
 
 
 def authenticate(driver):
-
     COOKIE_FILE = "cookies.pkl"
 
     # Load environment variables
@@ -83,40 +82,54 @@ def authenticate(driver):
     save_cookies(driver, "cookies.pkl")
     print("Session cookies saved")
 
-# Set up argparse to accept location and job title
-def get_arguments():
-    parser = argparse.ArgumentParser(description="Selenium job search script.")
-    parser.add_argument("job_title", type=str, help="Job title to search for")
-    parser.add_argument("location", type=str, help="Location for the job search")
-    return parser.parse_args()
 
 def search_jobs(driver, job_title, location):
     try:
-        # No need to navigate to the jobs page, we are already there after authentication
-        print("Starting job search...")
 
-        # Find and fill the location input
-        location_input = driver.find_element(By.CSS_SELECTOR, "input[aria-label='City, state, or zip code']")
-        location_input.send_keys(Keys.CONTROL + "a")
-        location_input.send_keys(Keys.BACKSPACE)
-        location_input.send_keys(location)
-        location_input.send_keys(Keys.RETURN)
+        wait = WebDriverWait(driver, 10)
 
-        time.sleep(3)
+        location_input = driver.find_element("css selector", "[data-job-search-box-location-input-trigger]")
+        search_button = driver.find_element("css selector", "button.jobs-search-box__submit-button.artdeco-button")
+
+        # Get the value of the attribute
+        location_value = location_input.get_attribute("data-job-search-box-location-input-trigger")
+
+        # Use an if statement to check for a specific value
+        if location_value != location:
+            # Find and fill the location input
+            location_input = driver.find_element(By.CSS_SELECTOR, "input[aria-label='City, state, or zip code']")
+            location_input.send_keys(Keys.CONTROL + "a")
+            location_input.send_keys(Keys.BACKSPACE)
+            location_input.send_keys(location)
+            search_button.click()
+
+            time.sleep(2)
 
         # Find and fill the job title input
         job_input = driver.find_element(By.CSS_SELECTOR, "input[aria-label='Search by title, skill, or company']")
         job_input.send_keys(Keys.CONTROL + "a")
         job_input.send_keys(Keys.BACKSPACE)
         job_input.send_keys(job_title)
-        job_input.send_keys(Keys.RETURN)
+        search_button.click()
 
-        print(f"Search results loaded for {job_title} in {location}.")
+        print(f"{job_title} in {location}:")
+
+        time.sleep(2)
+
+        elements = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'jobs-search-results-list__subtitle')))
+
+        for element in elements:
+            # Find the span inside the element (no extra wait is needed)
+            span = element.find_element(By.TAG_NAME, 'span')
+            print(span.text)
+        
+        time.sleep(2)
 
     except Exception as e:
         print(f"An error occurred during job search: {e}")
 
-def main():
+def main(file_path):
+
     # Set up WebDriver
     driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
 
@@ -126,15 +139,41 @@ def main():
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "input[aria-label='Search by title, skill, or company']"))
         )
-        job_title = "Developer"
-        location = "France"
-        search_jobs(driver, job_title, location) 
+
+        try:
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+            
+            # Loop through each line and split by ":"
+            for line in lines:
+                line = line.strip()  # Remove leading/trailing whitespace
+                if ':' in line:
+                    location, job_title = line.split(':', 1)  # Split by first occurrence of ":"
+                    location = location.strip()
+                    job_title = job_title.strip()
+                    
+                    # Call the search_jobs function
+                    search_jobs(driver, job_title, location)
+                else:
+                    print(f"Skipping line: '{line}' (not in 'job:location' format)")
+        
+        except FileNotFoundError:
+            print(f"Error: The file '{file_path}' was not found.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
     finally:
-        print("scoobydoo")
-        #driver.quit()
+        driver.quit()
 
 if __name__ == "__main__":
-    main()
+    # Set up argument parsing
+    parser = argparse.ArgumentParser(description="Process a text file.")
+    parser.add_argument("file_path", type=str, help="Path to the text file to be processed")
+    
+    # Parse the arguments
+    args = parser.parse_args()
+    
+    # Call the main function with the provided file path
+    main(args.file_path)
 
     
