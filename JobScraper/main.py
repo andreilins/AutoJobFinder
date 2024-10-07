@@ -169,10 +169,8 @@ def navigateList(driver):
                     # Click on the job
                     job.click()
                     clicked_jobs.add(job_id)  # Add to clicked jobs to prevent re-clicking
-                    print(f"Clicked on job: {job_id}")
-
-                    # Wait for 1 second
                     time.sleep(1)
+                    extractInfo(driver, job_id)
 
                     # Scroll down to the next job (simulate moving to the next job)
                     driver.execute_script("arguments[0].scrollIntoView();", job)
@@ -185,39 +183,20 @@ def navigateList(driver):
             if len(clicked_jobs) >= 25:  # Limit to clicking 25 jobs, for example
                 break
 
-def extractInfo(driver):
+def extractInfo(driver, job_id):
     company_element = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "div.job-details-jobs-unified-top-card__company-name a"))
     )
 
     # Extract the company name (text inside the <a> tag)
     company_name = company_element.text
-
-    print(f"Company Name: {company_name}")
-
     job_element = driver.find_element(By.CSS_SELECTOR, 'h1.t-24.t-bold.inline a')
-
     job_name = job_element.text
     job_link = job_element.get_attribute("href")
-
-    print(f"Job Name: {job_name}")
-    print(f"Job Link: {job_link}")
-
-    # Locate the element and extract the location text
     location_element = driver.find_element(By.CSS_SELECTOR, "div.job-details-jobs-unified-top-card__primary-description-container span.tvm__text")
-
-    # Extract the location part (everything before the '·')
     location = location_element.text.split("·")[0].strip()
-
-    print(f"Location: {location}")
-
-    # Locate the div containing the apply button
     apply_button_div = driver.find_element("css selector", "div.jobs-apply-button--top-card")
-
-    # Try to locate the <span> element inside the apply button div
     apply_type_element = apply_button_div.find_element("css selector", "span.artdeco-button__text")
-
-    # Extract the text from the <span> tag
     apply_type = apply_type_element.text.strip()  # Use strip to remove extra whitespace
 
     easy_apply = False
@@ -226,19 +205,20 @@ def extractInfo(driver):
         easy_apply = True
     elif apply_type == "Apply":
         easy_apply = False
-    
-    print(f"Easy Apply: {easy_apply}")
 
-    # Locate the <article> element by its class name
     job_description_element = driver.find_element("css selector", "article.jobs-description__container")
-
-    # Extract the text content from the <article> element
     job_description = job_description_element.text
-
-    print(f"Job Description: {job_description}")
+    print("|----------------------------------------------------|")
+    print(f"Job Name: {job_name}")
+    print(f"Company: {company_name}")
+    print(f"Job ID: {job_id}")
+    #print(f"Job Link: {job_link}")
+    print(f"Location: {location}")
+    print(f"Easy Apply: {easy_apply}")
+    #print(f"Job Description: {job_description}")
 
 def main(file_path):
-
+    
     # Set up WebDriver
     driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
 
