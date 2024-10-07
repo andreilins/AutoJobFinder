@@ -141,47 +141,79 @@ def search_jobs(driver, job_title, location):
         print(f"An error occurred during job search: {e}")
 
 def navigateList(driver):
-    # Locate the job list container
-    job_list_container = driver.find_element(By.CSS_SELECTOR, "ul.scaffold-layout__list-container")
+    clicked_jobs = set()  # Set to keep track of already clicked jobs
     
-    # Initialize a set to keep track of already clicked jobs
-    clicked_jobs = set()
-    
-    # Keep track of the previous number of job items
-    previous_job_count = 0
-
     while True:
-        # Locate all individual job items (div elements that contain each job card)
-        job_items = job_list_container.find_elements(By.CSS_SELECTOR, "div.job-card-container")
-        
-        # Check if new jobs have been loaded
-        if len(job_items) == previous_job_count:
-            break  # Exit loop if no new jobs are found
-        
-        # Update the count of job items
-        previous_job_count = len(job_items)
+        # Restart the process of scrolling and collecting job items on the current page
+        while True:
+            try:
+                # Locate the job list container and its items
+                job_list_container = driver.find_element(By.CSS_SELECTOR, "ul.scaffold-layout__list-container")
+                job_items = job_list_container.find_elements(By.CSS_SELECTOR, "div.job-card-container")
+                
+                # Process each job card
+                for job in job_items:
+                    job_id = job.get_attribute("data-job-id")  # Replace with actual identifier if available
+                    if job_id not in clicked_jobs:
+                        try:
+                            # Click on the job card
+                            job.click()
+                            clicked_jobs.add(job_id)
+                            time.sleep(1)  # Wait a bit to simulate human interaction
+                            extractInfo(driver, job_id)  # Extract info from the clicked job card
+                            
+                            # Scroll to the clicked job
+                            driver.execute_script("arguments[0].scrollIntoView();", job)
+                            time.sleep(1)  # Wait for any loading or animation
 
-        # Iterate over each job item
-        for job in job_items:
-            job_id = job.get_attribute("data-job-id")  # Replace with actual identifier if available
-            if job_id not in clicked_jobs:
-                try:
-                    # Click on the job
-                    job.click()
-                    clicked_jobs.add(job_id)  # Add to clicked jobs to prevent re-clicking
-                    time.sleep(1)
-                    extractInfo(driver, job_id)
+                        except Exception as e:
+                            print(f"An error occurred while clicking on job: {e}")
+                
+                # After processing all loaded jobs, check if there are more jobs to scroll to
+                # Scroll down to load more jobs (if applicable)
+                last_job = job_items[-1]  # Get the last job card
+                driver.execute_script("arguments[0].scrollIntoView();", last_job)
+                time.sleep(2)  # Wait for the new jobs to load after scrolling
 
-                    # Scroll down to the next job (simulate moving to the next job)
-                    driver.execute_script("arguments[0].scrollIntoView();", job)
-                    time.sleep(1)  # wait for any potential animations or loading
-
-                except Exception as e:
-                    print(f"An error occurred while clicking on job: {e}")
-            
-            # Optional: Break if you want to limit the number of jobs clicked
-            if len(clicked_jobs) >= 25:  # Limit to clicking 25 jobs, for example
+                # After scrolling, find the updated list of jobs
+                updated_job_items = job_list_container.find_elements(By.CSS_SELECTOR, "div.job-card-container")
+                
+                # If no new jobs are loaded, break the inner loop to proceed to the next page
+                if len(updated_job_items) == len(job_items):
+                    break  # No new jobs, move on to pagination
+                
+            except Exception as e:
+                print(f"Error during job search on this page: {e}")
                 break
+        
+        # Now, move to the next page if available
+        try:
+            # Find the pagination container
+            pagination_list = driver.find_element(By.CSS_SELECTOR, "ul.artdeco-pagination__pages")
+            
+            # Locate the active page
+            active_page = pagination_list.find_element(By.CSS_SELECTOR, "li.artdeco-pagination__indicator--number.active.selected")
+            
+            # Find the next page (next sibling of the active page)
+            next_page = active_page.find_element(By.XPATH, "following-sibling::li[1]")
+            
+            if next_page:
+                # Click on the next page number
+                next_page.click()
+                time.sleep(2)  # Wait for the next page to load
+                
+                # Reset the set of clicked jobs for the new page
+                clicked_jobs = set()  # Clear clicked jobs for new page processing
+                
+            else:
+                print("No more pages available.")
+                break  # Exit if there is no next page
+
+        except Exception as e:
+            print(f"No next page found or an error occurred")
+            break  # Exit the loop if no pagination is found or an error occurs
+
+
 
 def extractInfo(driver, job_id):
     company_element = WebDriverWait(driver, 10).until(
