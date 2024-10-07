@@ -10,6 +10,8 @@ from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 
 def save_cookies(driver, path):
     with open(path, "wb") as file:
@@ -103,7 +105,7 @@ def search_jobs(driver, job_title, location):
             location_input.send_keys(location)
             search_button.click()
 
-            time.sleep(2)
+            time.sleep(3)
 
         # Find and fill the job title input
         job_input = driver.find_element(By.CSS_SELECTOR, "input[aria-label='Search by title, skill, or company']")
@@ -114,7 +116,15 @@ def search_jobs(driver, job_title, location):
 
         print(f"{job_title} in {location}:")
 
-        time.sleep(2)
+        time.sleep(3)
+
+        try:
+            no_jobs_message = driver.find_element(By.CSS_SELECTOR, "h1.t-24.t-black.t-normal.text-align-center")
+            if "No matching jobs found." in no_jobs_message.text:
+                print("0 results")
+                return  # Exit the function if the message is found
+        except Exception as e:
+            pass
 
         elements = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'jobs-search-results-list__subtitle')))
 
@@ -123,10 +133,109 @@ def search_jobs(driver, job_title, location):
             span = element.find_element(By.TAG_NAME, 'span')
             print(span.text)
         
-        time.sleep(2)
+        navigateList(driver)
+
+        time.sleep(3)
 
     except Exception as e:
         print(f"An error occurred during job search: {e}")
+
+def navigateList(driver):
+    # Locate the job list container
+    job_list_container = driver.find_element(By.CSS_SELECTOR, "ul.scaffold-layout__list-container")
+    
+    # Initialize a set to keep track of already clicked jobs
+    clicked_jobs = set()
+    
+    # Keep track of the previous number of job items
+    previous_job_count = 0
+
+    while True:
+        # Locate all individual job items (div elements that contain each job card)
+        job_items = job_list_container.find_elements(By.CSS_SELECTOR, "div.job-card-container")
+        
+        # Check if new jobs have been loaded
+        if len(job_items) == previous_job_count:
+            break  # Exit loop if no new jobs are found
+        
+        # Update the count of job items
+        previous_job_count = len(job_items)
+
+        # Iterate over each job item
+        for job in job_items:
+            job_id = job.get_attribute("data-job-id")  # Replace with actual identifier if available
+            if job_id not in clicked_jobs:
+                try:
+                    # Click on the job
+                    job.click()
+                    clicked_jobs.add(job_id)  # Add to clicked jobs to prevent re-clicking
+                    print(f"Clicked on job: {job_id}")
+
+                    # Wait for 1 second
+                    time.sleep(1)
+
+                    # Scroll down to the next job (simulate moving to the next job)
+                    driver.execute_script("arguments[0].scrollIntoView();", job)
+                    time.sleep(1)  # wait for any potential animations or loading
+
+                except Exception as e:
+                    print(f"An error occurred while clicking on job: {e}")
+            
+            # Optional: Break if you want to limit the number of jobs clicked
+            if len(clicked_jobs) >= 25:  # Limit to clicking 25 jobs, for example
+                break
+
+def extractInfo(driver):
+    company_element = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "div.job-details-jobs-unified-top-card__company-name a"))
+    )
+
+    # Extract the company name (text inside the <a> tag)
+    company_name = company_element.text
+
+    print(f"Company Name: {company_name}")
+
+    job_element = driver.find_element(By.CSS_SELECTOR, 'h1.t-24.t-bold.inline a')
+
+    job_name = job_element.text
+    job_link = job_element.get_attribute("href")
+
+    print(f"Job Name: {job_name}")
+    print(f"Job Link: {job_link}")
+
+    # Locate the element and extract the location text
+    location_element = driver.find_element(By.CSS_SELECTOR, "div.job-details-jobs-unified-top-card__primary-description-container span.tvm__text")
+
+    # Extract the location part (everything before the '·')
+    location = location_element.text.split("·")[0].strip()
+
+    print(f"Location: {location}")
+
+    # Locate the div containing the apply button
+    apply_button_div = driver.find_element("css selector", "div.jobs-apply-button--top-card")
+
+    # Try to locate the <span> element inside the apply button div
+    apply_type_element = apply_button_div.find_element("css selector", "span.artdeco-button__text")
+
+    # Extract the text from the <span> tag
+    apply_type = apply_type_element.text.strip()  # Use strip to remove extra whitespace
+
+    easy_apply = False
+
+    if apply_type == "Easy Apply":
+        easy_apply = True
+    elif apply_type == "Apply":
+        easy_apply = False
+    
+    print(f"Easy Apply: {easy_apply}")
+
+    # Locate the <article> element by its class name
+    job_description_element = driver.find_element("css selector", "article.jobs-description__container")
+
+    # Extract the text content from the <article> element
+    job_description = job_description_element.text
+
+    print(f"Job Description: {job_description}")
 
 def main(file_path):
 
