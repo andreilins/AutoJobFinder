@@ -1,25 +1,9 @@
-France:Software Developer
+Finland:plubmer
 Portugal:Software Engineer
-Portugal:Technical Consultant
-Portugal:Full-stack Developer
 Portugal:Developer
-Spain:Software Developer
-Spain:Software Engineer
-Spain:Technical Consultant
-Spain:Full-stack Developer
-Spain:Developer
-France:Software Developer
-France:Software Engineer
-France:Technical Consultant
-France:Full-stack Developer
-France:Developer
 Germany:Software Developer
 Germany:Software Engineer
-Germany:Technical Consultant
-Germany:Full-stack Developer
 Germany:Developer
 United Kingdom:Software Developer
 United Kingdom:Software Engineer
-United Kingdom:Technical Consultant
-United Kingdom:Full-stack Developer
 United Kingdom:Developer

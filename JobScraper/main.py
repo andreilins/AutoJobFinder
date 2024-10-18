@@ -2,6 +2,7 @@ import os
 import argparse
 import pickle
 import time
+import sqlite3
 from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -133,7 +134,26 @@ def search_jobs(driver, job_title, location):
             span = element.find_element(By.TAG_NAME, 'span')
             print(span.text)
         
-        navigateList(driver)
+        job_list = navigateList(driver)
+
+        # Open connection to the same database
+        db_path = os.path.join(os.path.dirname(__file__), '..', 'database', 'jobs.db')
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Insert the list of tuples into the database
+        cursor.executemany('''
+        INSERT INTO jobs (id, title, company, location, description, url, easy_apply)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', job_list)
+
+        # Commit the transaction
+        conn.commit()
+
+        # Close the connection
+        conn.close()
+
+        print("Batch insertion completed.")
 
         time.sleep(3)
 
@@ -142,8 +162,10 @@ def search_jobs(driver, job_title, location):
 
 def navigateList(driver):
     clicked_jobs = set()  # Set to keep track of already clicked jobs
+    job_list = []
     
     while True:
+        # initalize empty job list
         # Restart the process of scrolling and collecting job items on the current page
         while True:
             try:
@@ -160,7 +182,7 @@ def navigateList(driver):
                             job.click()
                             clicked_jobs.add(job_id)
                             time.sleep(1)  # Wait a bit to simulate human interaction
-                            extractInfo(driver, job_id)  # Extract info from the clicked job card
+                            job_list.append(extractInfo(driver, job_id))  # Extract info from the clicked job card and add to job list
                             
                             # Scroll to the clicked job
                             driver.execute_script("arguments[0].scrollIntoView();", job)
@@ -185,8 +207,7 @@ def navigateList(driver):
             except Exception as e:
                 print(f"Error during job search on this page: {e}")
                 break
-        
-        # Now, move to the next page if available
+
         try:
             # Find the pagination container
             pagination_list = driver.find_element(By.CSS_SELECTOR, "ul.artdeco-pagination__pages")
@@ -212,6 +233,8 @@ def navigateList(driver):
         except Exception as e:
             print(f"No next page found or an error occurred")
             break  # Exit the loop if no pagination is found or an error occurs
+    
+    return job_list
 
 
 
@@ -248,6 +271,10 @@ def extractInfo(driver, job_id):
     print(f"Location: {location}")
     print(f"Easy Apply: {easy_apply}")
     #print(f"Job Description: {job_description}")
+
+    job = (job_name, company_name, job_id, job_link, location, easy_apply, job_description)
+
+    return job
 
 def main(file_path):
     
