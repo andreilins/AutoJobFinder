@@ -133,27 +133,8 @@ def search_jobs(driver, job_title, location):
             # Find the span inside the element (no extra wait is needed)
             span = element.find_element(By.TAG_NAME, 'span')
             print(span.text)
-        
-        job_list = navigateList(driver)
 
-        # Open connection to the same database
-        db_path = os.path.join(os.path.dirname(__file__), '..', 'database', 'jobs.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        # Insert the list of tuples into the database
-        cursor.executemany('''
-        INSERT INTO jobs (id, title, company, location, description, url, easy_apply)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', job_list)
-
-        # Commit the transaction
-        conn.commit()
-
-        # Close the connection
-        conn.close()
-
-        print("Batch insertion completed.")
+        navigateList(driver)
 
         time.sleep(3)
 
@@ -165,7 +146,6 @@ def navigateList(driver):
     job_list = []
     
     while True:
-        # initalize empty job list
         # Restart the process of scrolling and collecting job items on the current page
         while True:
             try:
@@ -201,7 +181,28 @@ def navigateList(driver):
                 updated_job_items = job_list_container.find_elements(By.CSS_SELECTOR, "div.job-card-container")
                 
                 # If no new jobs are loaded, break the inner loop to proceed to the next page
+                # add the current page entries to the database and clear the list
                 if len(updated_job_items) == len(job_items):
+                    # Open connection to the same database
+                    db_path = os.path.join(os.path.dirname(__file__), '..', 'database', 'jobs.db')
+                    conn = sqlite3.connect(db_path)
+                    cursor = conn.cursor()
+
+                    # Insert the list of tuples into the database
+                    cursor.executemany('''
+                    INSERT OR IGNORE INTO jobs (id, title, company, location, description, url, easy_apply)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', job_list)
+
+                    # Commit the transaction
+                    conn.commit()
+
+                    # Close the connection
+                    conn.close()
+
+                    print("Batch insertion completed.")
+
+                    job_list.clear()
                     break  # No new jobs, move on to pagination
                 
             except Exception as e:
@@ -233,8 +234,6 @@ def navigateList(driver):
         except Exception as e:
             print(f"No next page found or an error occurred")
             break  # Exit the loop if no pagination is found or an error occurs
-    
-    return job_list
 
 
 
@@ -272,7 +271,7 @@ def extractInfo(driver, job_id):
     print(f"Easy Apply: {easy_apply}")
     #print(f"Job Description: {job_description}")
 
-    job = (job_name, company_name, job_id, job_link, location, easy_apply, job_description)
+    job = (job_id, job_name, company_name, location, job_description, job_link, easy_apply)
 
     return job
 
