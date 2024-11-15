@@ -32,30 +32,6 @@ def get_job(id):
         return jsonify({"error": "Job not found"}), 404
     return jsonify(dict(job))
 
-# Create a new job
-@app.route('/jobs', methods=['POST'])
-def create_job():
-    new_job = request.get_json()
-    job_title = new_job.get('job_title')
-    company = new_job.get('company')
-    location = new_job.get('location')
-    description = new_job.get('description')
-
-    if not job_title or not company:
-        return jsonify({"error": "Job title and company are required"}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        'INSERT INTO jobs (job_title, company, location, description) VALUES (?, ?, ?, ?)',
-        (job_title, company, location, description)
-    )
-    conn.commit()
-    job_id = cursor.lastrowid
-    conn.close()
-
-    return jsonify({"id": job_id, "job_title": job_title, "company": company, "location": location, "description": description}), 201
-
 # Update a job by ID
 @app.route('/jobs/<int:id>', methods=['PUT'])
 def update_job(id):
@@ -79,20 +55,6 @@ def update_job(id):
     conn.close()
 
     return jsonify({"id": id, "job_title": job_title, "company": company, "location": location, "description": description})
-
-# Delete a job by ID
-@app.route('/jobs/<int:id>', methods=['DELETE'])
-def delete_job(id):
-    conn = get_db_connection()
-    job = conn.execute('SELECT * FROM jobs WHERE id = ?', (id,)).fetchone()
-    if job is None:
-        conn.close()
-        return jsonify({"error": "Job not found"}), 404
-
-    conn.execute('DELETE FROM jobs WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Job deleted successfully"})
 
 if __name__ == '__main__':
     app.run(debug=True)
