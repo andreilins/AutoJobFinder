@@ -1,9 +1,2 @@
 Germany:Software Developer
-Germany:Software Engineer
-Germany:Developer
-Portugal:Software Developer
-Portugal:Software Engineer
-Portugal:Developer
-United Kingdom:Software Developer
-United Kingdom:Software Engineer
-United Kingdom:Developer
+

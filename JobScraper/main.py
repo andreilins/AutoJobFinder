@@ -2,7 +2,6 @@ import os
 import argparse
 import pickle
 import time
-import gc
 import sqlite3
 from dotenv import load_dotenv
 from selenium import webdriver
@@ -203,8 +202,7 @@ def navigateList(driver):
 
                     print("Batch insertion completed.")
 
-                    job_list.clear()
-                    gc.collect()
+                    job_list = []
 
                     break  # No new jobs, move on to pagination
                 
@@ -214,10 +212,10 @@ def navigateList(driver):
 
         try:
             # Find the pagination container
-            pagination_list = driver.find_element(By.CSS_SELECTOR, "ul.artdeco-pagination__pages")
+            pagination_list = driver.find_element(By.CSS_SELECTOR, ".jobs-search-pagination__pages")
             
             # Locate the active page
-            active_page = pagination_list.find_element(By.CSS_SELECTOR, "li.artdeco-pagination__indicator--number.active.selected")
+            active_page = pagination_list.find_element(By.CSS_SELECTOR, "li.jobs-search-pagination__indicator:nth-child(1)")
             
             # Find the next page (next sibling of the active page)
             next_page = active_page.find_element(By.XPATH, "following-sibling::li[1]")
@@ -235,7 +233,7 @@ def navigateList(driver):
                 break  # Exit if there is no next page
 
         except Exception as e:
-            print(f"No next page found or an error occurred")
+            print(f"No next page found or an error occurred: {e}")
             break  # Exit the loop if no pagination is found or an error occurs
 
 
@@ -305,7 +303,7 @@ def main(file_path):
                     # Call the search_jobs function
                     search_jobs(driver, job_title, location)
                 else:
-                    print(f"Skipping line: '{line}' (not in 'job:location' format)")
+                    print(f"Skipping line: '{line}' (not in 'location:job' format)")
         
         except FileNotFoundError:
             print(f"Error: The file '{file_path}' was not found.")
