@@ -2,6 +2,7 @@ import os
 import argparse
 import pickle
 import time
+import gc
 import sqlite3
 from dotenv import load_dotenv
 from selenium import webdriver
@@ -203,6 +204,8 @@ def navigateList(driver):
                     print("Batch insertion completed.")
 
                     job_list.clear()
+                    gc.collect()
+
                     break  # No new jobs, move on to pagination
                 
             except Exception as e:
