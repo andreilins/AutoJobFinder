@@ -137,10 +137,12 @@ def navigateList(driver):
             pagination_list = driver.find_element(By.CSS_SELECTOR, ".jobs-search-pagination__pages")
             
             # Locate the active page
-            active_page = pagination_list.find_element(By.CSS_SELECTOR, "li.jobs-search-pagination__indicator:nth-child(1)")
+            active_page = pagination_list.find_element(By.CSS_SELECTOR, ".jobs-search-pagination__indicator-button--active")
+
+            parent_element = active_page.find_element(By.XPATH, "..")
             
             # Find the next page (next sibling of the active page)
-            next_page = active_page.find_element(By.XPATH, "following-sibling::li[1]")
+            next_page = parent_element.find_element(By.XPATH, "following-sibling::li[1]")
             
             if next_page:
                 # Click on the next page number
